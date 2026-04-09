@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>墨韵 · InkWell</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face { font-family: 'KaiTi'; src: local('KaiTi'), local('STKaiti'), local('SimKai'); }
+  </style>
+</head>
+<body>
+
+<!-- ═══ Login Screen ═══ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-title">墨 韻</div>
+    <div class="login-subtitle">InkWell · 端对端加密双人空间</div>
+    <div class="form-group">
+      <label>用 户 名</label>
+      <input type="text" id="login-username" class="input" placeholder="请输入用户名" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>密 码</label>
+      <input type="password" id="login-password" class="input" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <div class="login-actions">
+      <button id="btn-login" class="btn btn-primary" onclick="App.login()">登 入</button>
+      <button id="btn-register" class="btn" onclick="App.register()">注 册</button>
+    </div>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══ Main App ═══ -->
+<div id="app" style="display:none;">
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="App.closeSidebars()"></div>
+
+  <!-- Left Sidebar -->
+  <div id="left-sidebar">
+    <div class="sidebar-header flex items-center justify-between">
+      <span>墨 韻</span>
+      <span id="partner-status" class="text-xs text-faint"></span>
+    </div>
+    <div class="sidebar-nav">
+      <button class="sidebar-item active" data-panel="chat" onclick="App.switchPanel('chat')">
+        <span class="icon">✉</span> 对 话
+      </button>
+      <button class="sidebar-item" data-panel="notes" onclick="App.switchPanel('notes')">
+        <span class="icon">📝</span> 笔 记
+      </button>
+      <button class="sidebar-item" data-panel="diary" onclick="App.switchPanel('diary')">
+        <span class="icon">📖</span> 日 记
+      </button>
+      <button class="sidebar-item" data-panel="todo" onclick="App.switchPanel('todo')">
+        <span class="icon">☑</span> 待 办
+      </button>
+      <button class="sidebar-item" data-panel="memo" onclick="App.switchPanel('memo')">
+        <span class="icon">📌</span> 备忘录
+      </button>
+      <button class="sidebar-item" data-panel="pomodoro" onclick="App.switchPanel('pomodoro')">
+        <span class="icon">🍅</span> 番茄钟
+      </button>
+      <button class="sidebar-item" data-panel="reader" onclick="App.switchPanel('reader')">
+        <span class="icon">📚</span> 听 书
+      </button>
+      <button class="sidebar-item" data-panel="audio" onclick="App.switchPanel('audio')">
+        <span class="icon">🎵</span> 音 频
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <span id="user-info"></span>
+      <button class="btn btn-sm btn-ghost mt-sm" onclick="App.logout()">退出登录</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content">
+    <!-- Topbar -->
+    <div id="topbar">
+      <button class="icon-btn mobile-menu-btn" onclick="App.toggleLeft()">☰</button>
+      <span class="logo" id="panel-title">对 话</span>
+      <div style="flex:1"></div>
+      <button class="icon-btn mobile-menu-btn" onclick="App.toggleRight()">⚙</button>
+    </div>
+
+    <!-- ═══ Chat Panel ═══ -->
+    <div class="panel active" id="panel-chat">
+      <div class="chat-container">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="typing-indicator" id="typing-indicator"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chat-input" placeholder="写点什么……" rows="1"
+            onkeydown="Chat.handleKey(event)" oninput="Chat.autoResize(this); Chat.sendTyping()"></textarea>
+          <button class="btn btn-primary" onclick="Chat.send()">发 送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Notes Panel ═══ -->
+    <div class="panel" id="panel-notes">
+      <div class="panel-header">
+        <div class="flex items-center gap-sm">
+          <button class="btn btn-sm" id="notes-personal-btn" onclick="Notes.switchType('personal')">个人笔记</button>
+          <button class="btn btn-sm" id="notes-shared-btn" onclick="Notes.switchType('shared')">共享笔记</button>
+          <button class="btn btn-sm btn-ghost" onclick="Notes.showArchived()">归档</button>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="Notes.create()">+ 新建</button>
+      </div>
+      <div class="panel-body">
+        <div class="notes-grid" id="notes-grid"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Diary Panel ═══ -->
+    <div class="panel" id="panel-diary">
+      <div class="panel-header">
+        <div class="flex items-center gap-sm">
+          <button class="icon-btn" onclick="Diary.prevMonth()">◀</button>
+          <span id="diary-month-label" class="font-bold"></span>
+          <button class="icon-btn" onclick="Diary.nextMonth()">▶</button>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="Diary.writeToday()">写今日日记</button>
+      </div>
+      <div class="panel-body">
+        <div class="diary-calendar diary-header-row" id="diary-weekdays"></div>
+        <div class="diary-calendar" id="diary-calendar"></div>
+        <div id="diary-editor-area" class="hidden">
+          <div class="diary-editor">
+            <div class="flex items-center justify-between">
+              <span id="diary-date-label" class="font-bold text-sm"></span>
+              <div class="mood-selector" id="diary-mood"></div>
+            </div>
+            <input type="text" id="diary-title" class="input" placeholder="日记标题（可选）">
+            <textarea id="diary-content" class="textarea" placeholder="今天发生了什么……"></textarea>
+            <div class="flex justify-between items-center">
+              <span id="diary-word-count" class="text-xs text-faint"></span>
+              <div class="flex gap-sm">
+                <button class="btn btn-sm btn-danger" onclick="Diary.delete()">删除</button>
+                <button class="btn btn-sm btn-primary" onclick="Diary.save()">保 存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TODO Panel ═══ -->
+    <div class="panel" id="panel-todo">
+      <div class="panel-header">
+        <span>待 办 事 项</span>
+        <div class="flex gap-sm">
+          <select id="todo-filter" class="input" style="width:auto;padding:4px 10px;font-size:12px" onchange="Todo.render()">
+            <option value="all">全部</option>
+            <option value="active">未完成</option>
+            <option value="done">已完成</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="flex gap-sm mb-md">
+          <input type="text" id="todo-input" class="input" placeholder="添加新的待办事项……" onkeydown="if(event.key==='Enter')Todo.add()">
+          <select id="todo-priority" class="input" style="width:auto">
+            <option value="0">普通</option>
+            <option value="1">重要</option>
+            <option value="2">紧急</option>
+          </select>
+          <input type="date" id="todo-due" class="input" style="width:auto">
+          <button class="btn btn-primary btn-sm" onclick="Todo.add()">添加</button>
+        </div>
+        <div class="todo-list" id="todo-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Memo Panel ═══ -->
+    <div class="panel" id="panel-memo">
+      <div class="panel-header">
+        <span>备 忘 录</span>
+        <button class="btn btn-sm btn-primary" onclick="Memo.create()">+ 新建</button>
+      </div>
+      <div class="panel-body">
+        <div id="memo-form" class="hidden mb-md" style="padding:16px;border:1px solid var(--paper-border);border-radius:var(--radius)">
+          <textarea id="memo-content" class="textarea" placeholder="备忘内容……" style="min-height:80px"></textarea>
+          <div class="flex items-center gap-sm mt-sm">
+            <label class="text-sm">提醒时间：</label>
+            <input type="datetime-local" id="memo-remind" class="input" style="width:auto">
+            <div style="flex:1"></div>
+            <button class="btn btn-sm" onclick="Memo.cancelForm()">取消</button>
+            <button class="btn btn-sm btn-primary" onclick="Memo.save()">保存</button>
+          </div>
+        </div>
+        <div class="memo-list" id="memo-list"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Pomodoro Panel ═══ -->
+    <div class="panel" id="panel-pomodoro">
+      <div class="panel-body">
+        <div class="pomodoro-container">
+          <div class="pomodoro-type-tabs">
+            <button class="pomo-type-btn active" onclick="Pomodoro.setType('focus', 25)">专注 25分</button>
+            <button class="pomo-type-btn" onclick="Pomodoro.setType('short', 5)">短休 5分</button>
+            <button class="pomo-type-btn" onclick="Pomodoro.setType('long', 15)">长休 15分</button>
+          </div>
+          <div class="pomodoro-timer">
+            <div class="pomodoro-progress" id="pomo-progress">
+              <svg viewBox="0 0 100 100">
+                <circle class="track" cx="50" cy="50" r="47" />
+                <circle class="fill" id="pomo-circle" cx="50" cy="50" r="47"
+                  stroke-dasharray="295.31" stroke-dashoffset="0" />
+              </svg>
+            </div>
+            <div class="pomodoro-time" id="pomo-time">25:00</div>
+            <div class="pomodoro-label" id="pomo-label">专 注</div>
+          </div>
+          <div class="pomodoro-controls">
+            <button class="btn btn-primary" id="pomo-start" onclick="Pomodoro.toggle()">开 始</button>
+            <button class="btn" onclick="Pomodoro.reset()">重 置</button>
+          </div>
+          <div class="pomodoro-stats" id="pomo-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Reader Panel ═══ -->
+    <div class="panel" id="panel-reader">
+      <div class="panel-header">
+        <div class="flex items-center gap-sm">
+          <select id="book-select" class="input" style="width:auto;max-width:200px" onchange="Reader.loadBook()">
+            <option value="">选择书籍…</option>
+          </select>
+          <button class="btn btn-sm" onclick="Reader.uploadBook()">上传TXT</button>
+          <input type="file" id="book-file-input" accept=".txt" class="hidden" onchange="Reader.handleUpload(event)">
+        </div>
+        <div class="flex items-center gap-sm">
+          <button class="btn btn-sm" onclick="Reader.ttsPlay()" id="tts-play-btn">▶ 朗读</button>
+          <button class="btn btn-sm" onclick="Reader.ttsStop()">⏹ 停止</button>
+          <select id="tts-voice-select" class="input" style="width:auto;max-width:160px;padding:4px 8px;font-size:11px"></select>
+        </div>
+      </div>
+      <div class="reader-container">
+        <div class="reader-content" id="reader-content">
+          <div class="empty-state">
+            <div class="empty-icon">📚</div>
+            <div class="empty-text">上传一本 TXT 书籍开始阅读</div>
+          </div>
+        </div>
+        <div class="reader-toolbar">
+          <span class="text-xs text-faint" id="reader-position">0%</span>
+          <div class="reader-progress">
+            <div class="reader-progress-fill" id="reader-progress-fill" style="width:0%"></div>
+          </div>
+          <span class="text-xs text-faint" id="reader-chars">0 字</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Audio Panel ═══ -->
+    <div class="panel" id="panel-audio">
+      <div class="panel-header">
+        <span>音 频 播 放</span>
+        <div class="flex gap-sm">
+          <button class="btn btn-sm btn-primary" onclick="Audio.upload()">上传音频</button>
+          <input type="file" id="audio-file-input" accept="audio/*" class="hidden" onchange="Audio.handleUpload(event)">
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="audio-player mb-md" id="audio-player-main" style="display:none">
+          <div class="track-info" id="audio-track-name">未选择</div>
+          <div class="audio-controls">
+            <button class="play-btn" id="audio-play-btn" onclick="Audio.toggle()">▶</button>
+            <input type="range" class="audio-seek" id="audio-seek" min="0" max="100" value="0" oninput="Audio.seek(this.value)">
+            <span class="audio-time" id="audio-time">0:00 / 0:00</span>
+          </div>
+          <div class="flex items-center gap-sm">
+            <span class="text-xs">🔊</span>
+            <input type="range" class="slider-input" id="audio-volume" min="0" max="100" value="80" oninput="Audio.setVolume(this.value)" style="width:80px">
+          </div>
+        </div>
+        <div class="flex flex-col gap-sm" id="audio-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div id="right-sidebar">
+    <div class="sidebar-header">设 置</div>
+
+    <div class="settings-group">
+      <h4>界面缩放</h4>
+      <div class="setting-row">
+        <label>缩放比例</label>
+        <input type="range" class="slider-input" min="0.7" max="1.5" step="0.05" value="1"
+          oninput="App.setScale(this.value)">
+      </div>
+      <div class="text-xs text-center text-faint" id="scale-value">100%</div>
+    </div>
+
+    <div class="settings-group">
+      <h4>TTS 语音设置</h4>
+      <div class="setting-row">
+        <label>语速</label>
+        <select id="tts-rate" class="input" style="width:auto;padding:4px 8px;font-size:12px">
+          <option value="-50%">0.5x</option>
+          <option value="-25%">0.75x</option>
+          <option value="+0%" selected>1.0x</option>
+          <option value="+25%">1.25x</option>
+          <option value="+50%">1.5x</option>
+          <option value="+100%">2.0x</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>音调</label>
+        <select id="tts-pitch" class="input" style="width:auto;padding:4px 8px;font-size:12px">
+          <option value="-20Hz">低</option>
+          <option value="+0Hz" selected>正常</option>
+          <option value="+20Hz">高</option>
+        </select>
+      </div>
+      <div class="mt-sm">
+        <h4>上传音色样本</h4>
+        <button class="btn btn-sm w-full mt-sm" onclick="document.getElementById('voice-sample-input').click()">
+          选择音频样本
+        </button>
+        <input type="file" id="voice-sample-input" accept="audio/*" class="hidden" onchange="TTS.uploadSample(event)">
+        <div id="voice-profiles-list" class="mt-sm"></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h4>加密状态</h4>
+      <div id="encryption-status" class="text-sm">
+        <div class="flex items-center gap-sm">
+          <span>🔐</span>
+          <span>端对端加密已启用</span>
+        </div>
+        <div class="text-xs text-faint mt-sm" id="crypto-info"></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h4>伙伴信息</h4>
+      <div id="partner-info" class="text-sm text-faint">等待伙伴加入…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Note Editor Modal ═══ -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="note-modal-title">编辑笔记</span>
+      <button class="icon-btn" onclick="Notes.closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>标 题</label>
+        <input type="text" id="note-edit-title" class="input" placeholder="笔记标题">
+      </div>
+      <div class="form-group">
+        <label>内 容</label>
+        <textarea id="note-edit-content" class="textarea" placeholder="在此书写……" style="min-height:250px"></textarea>
+      </div>
+      <div class="form-group">
+        <label>标 签（逗号分隔）</label>
+        <input type="text" id="note-edit-tags" class="input" placeholder="标签1, 标签2">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-ghost btn-danger" id="note-delete-btn" onclick="Notes.deleteCurrent()">删 除</button>
+      <button class="btn btn-sm" id="note-pin-btn" onclick="Notes.pinCurrent()">📌 置 顶</button>
+      <button class="btn btn-sm" id="note-archive-btn" onclick="Notes.archiveCurrent()">📦 归 档</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-sm" onclick="Notes.closeModal()">取 消</button>
+      <button class="btn btn-sm btn-primary" onclick="Notes.saveCurrent()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
